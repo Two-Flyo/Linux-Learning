@@ -2,29 +2,49 @@
 #include <unistd.h>
 #include <string.h>
 
-
-int main(int argc, char* argv[])
+int main()
 {
-	if(argc != 2)
+	extern char** environ;
+	for(int i = 0;environ[i];i++)
 	{
-		printf("Usage: %s -[a/b]\n",argv[0]);
-		return 1;
+		printf("%d->%s\n",i,environ[i]);
 	}
 
-	if(strcmp(argv[1], "-a") == 0)
-	{
-		printf("hello ^_^\n");
-	}
-	else if (strcmp(argv[1], "-b") == 0) 
-	{
-		printf("hello ^_&\n");
-	}
-	else
-	{
-		printf("&_&\n");
-	}
 	return 0;
 }
+
+// int main(int argc, char* argv[], char* env[])
+// {
+// 	for(int i = 0;env[i];i++)
+// 	{
+// 		printf("%d: %s\n",i,env[i]);
+// 	}
+
+// 	return 0;
+// }
+
+// int main(int argc, char* argv[])
+// {
+// 	if(argc != 2)
+// 	{
+// 		printf("Usage: %s -[a/b]\n",argv[0]);
+// 		return 1;
+// 	}
+
+// 	if(strcmp(argv[1], "-a") == 0)
+// 	{
+// 		printf("hello ^_^\n");
+// 	}
+// 	else if (strcmp(argv[1], "-b") == 0) 
+// 	{
+// 		printf("hello ^_&\n");
+// 	}
+// 	else
+// 	{
+// 		printf("&_&\n");
+// 	}
+// 	return 0;
+// }
 
 // int main(int argc, char * argv[])
 // {

@@ -1,5 +1,5 @@
 proc:proc.c
-	gcc -o $@ $^ -std=c99
+	gcc -o $@ $^
 .PHONY:clean
 clean:
 	rm -f proc
