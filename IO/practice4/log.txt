@@ -1,0 +1,4 @@
+hello stdout
+hello printf
+hello fprintf
+hello puts
