@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <sys/socket.h>
 #include <cerrno>
 #include <sys/types.h>
@@ -45,18 +46,32 @@ int main(int argc, char *argv[])
     while (true)
     {
         // a.你的数据从哪里来
-        std::string message;
-        std::cout << "请输入#" << std::endl;
-        std::cin >> message;
+        // std::string message;
+        // std::cout << "请输入#" << std::endl;
+        // std::cin >> message;
+        std::cout << "LRF-Shell $ " <<std::endl;
+        char line[1024];
+        fgets(line, sizeof(line), stdin);
 
-        sendto(sock, message.c_str(), message.size(), 0, (struct sockaddr *)&server, sizeof(server));
+        sendto(sock, line, strlen(line), 0, (struct sockaddr *)&server, sizeof(server));
 
         // 此处tmp就是一个"占位符"
         struct sockaddr_in tmp;
         socklen_t len = sizeof(tmp);
         char buffer[1024];
-        recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&tmp, &len);
-        std::cout << "server echo# " << buffer << std::endl;
+        ssize_t cnt = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr *)&tmp, &len);
+        if(cnt > 0)
+        {
+            //在网络通信中, 只有报文大小,或者字节流的个数,
+            //没有C/C++字符串这样的概念(虽然我们后续可能经常会遇到类似的情况)
+            buffer[cnt] = 0;
+            std::cout << buffer << buffer << std::endl;
+        }
+        else
+        {
+            // TODO
+            // ...
+        }
     }
 
     std::cout << "hello client" << std::endl;

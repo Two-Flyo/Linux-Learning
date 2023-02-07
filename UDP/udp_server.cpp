@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <cerrno>
 #include <string>
 #include <sys/types.h>
@@ -6,10 +7,22 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-const uint16_t port = 8080;
+// const uint16_t port = 8080;
 
-int main()
+void Usage(std::string proc)
 {
+    std::cout << "Usage: " << proc << " port" << std::endl;
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
+        Usage(argv[0]);
+        return 1;
+    }
+
+    uint16_t port = atoi(argv[1]);
     // 1.创建套接字,打开网络文件
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0)
@@ -48,12 +61,41 @@ int main()
     {
         struct sockaddr_in peer;
         socklen_t len = sizeof(peer);
-        recvfrom(sock, buffer, sizeof(buffer - 1), 0, (struct sockaddr *)&peer, &len);
 
-        std::cout << "clent# " << buffer << std::endl;
+        // 注意:我们默认认为通信的数据是双方在互发字符串
 
-        std::string echo_hello = "hello";
-        sendto(sock, echo_hello.c_str(), echo_hello.size(), 0, (struct sockaddr *)&peer, len);
+        ssize_t cnt = recvfrom(sock, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&peer, &len);
+
+        if (cnt > 0)
+        {
+            buffer[cnt] = 0; // 可以当做一个字符串命令
+
+            FILE *fp = popen(buffer, "r");
+            std::string echo_hello;
+            char line[2048] = {0};
+            while (fgets(line, sizeof(line), fp) != NULL)
+            {
+                echo_hello += line;
+            }
+
+            // if (feof(fp))
+            // {
+            //     //读取结果
+
+            // }
+
+            pclose(fp);
+
+            std::cout << "clent# " << buffer << std::endl;
+
+            // // 根据用户输入, 构建一个新的字符串
+            // std::string echo_hello = buffer;
+            echo_hello += "...";
+            sendto(sock, echo_hello.c_str(), echo_hello.size(), 0, (struct sockaddr *)&peer, len);
+        }
+        else
+        {
+        }
     }
 
     return 0;
