@@ -8,37 +8,56 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <pthread.h>
 
-void ServiceIO(int new_sock)
-{
-    while (true)
-    {
-        char buffer[1024];
-        memset(buffer, 0, sizeof(buffer));
-        ssize_t s = read(new_sock, buffer, sizeof(buffer) - 1);
+#include "thread_pool.hpp"
+#include "task.hpp"
 
-        if (s > 0)
-        {
-            buffer[s] = 0; // 将获取的内容当成字符串
-            std::cout << "client# " << buffer << std::endl;
+using namespace threadpool;
+using namespace task;
 
-            std::string echo_string = ">>>server<<<, ";
-            echo_string += buffer;
 
-            write(new_sock, echo_string.c_str(), echo_string.size());
-        }
-        else if (s == 0)
-        {
-            std::cout << "client quit ..." << std::endl;
-            break;
-        }
-        else
-        {
-            std::cerr << "read error" << std::endl;
-            break;
-        }
-    }
-}
+
+// void ServiceIO(int new_sock)
+// {
+//     while (true)
+//     {
+//         char buffer[1024];
+//         memset(buffer, 0, sizeof(buffer));
+//         ssize_t s = read(new_sock, buffer, sizeof(buffer) - 1);
+
+//         if (s > 0)
+//         {
+//             buffer[s] = 0; // 将获取的内容当成字符串
+//             std::cout << "client# " << buffer << std::endl;
+
+//             std::string echo_string = ">>>server<<<, ";
+//             echo_string += buffer;
+
+//             write(new_sock, echo_string.c_str(), echo_string.size());
+//         }
+//         else if (s == 0)
+//         {
+//             std::cout << "client quit ..." << std::endl;
+//             break;
+//         }
+//         else
+//         {
+//             std::cerr << "read error" << std::endl;
+//             break;
+//         }
+//     }
+// }
+
+// void *HandlerRequest(void *args)
+// {
+//     pthread_detach(pthread_self());
+//     int sock = *(int *)args;
+//     delete (int *)args;
+//     ServiceIO(sock);
+//     close(sock);
+// }
 
 void Usage(std::string proc)
 {
@@ -88,7 +107,7 @@ int main(int argc, char *argv[])
         return 4;
     }
 
-    signal(SIGCHLD, SIG_IGN);  //在Linux中,父进程忽略子进程的SIGCHLD,子进程会自动退出释放资源
+    // signal(SIGCHLD, SIG_IGN);  //在Linux中,父进程忽略子进程的SIGCHLD,子进程会自动退出释放资源
 
     for (;;)
     {
@@ -104,38 +123,56 @@ int main(int argc, char *argv[])
         uint16_t cli_prot = ntohs(peer.sin_port);
         std::string cli_ip = inet_ntoa(peer.sin_addr);
 
-        std::cout << "get a new link -> : [" << cli_ip  << ":" << cli_prot << "]# " << new_sock << std::endl;
+        std::cout << "get a new link -> : [" << cli_ip << ":" << cli_prot << "]# " << new_sock << std::endl;
+
+        // version 4.0
+        //version 2, 3:创建进程/线程无上限
+        
+        //构建一个任务
+        Task t(new_sock);
+        // Task t(new_sock);
+        //将任务push到后端线程池即可
+        ThreadPool<Task>::GetInstance()->PushTask(t);
+        
 
 
-        //version 2.0版本
-        pid_t id = fork();
-        if (id < 0)
-        {
-            continue;
-        }
-        else if(id == 0) 
-        {
-            //child process
-            ServiceIO(new_sock);
+        // version 3.0 多进程版本
+        // pthread_t tid;
+        // int *pram = new int(new_sock);
+        // pthread_create(&tid, nullptr, HandlerRequest, (void *)pram);
 
-            //曾经被父进程打开的fd, 是否会被子进程继承呢?   
-            //无论父子进程中的哪一个,强烈建议关闭,防止误读
+        // version 2.0版本
+        //  pid_t id = fork();
+        //  if (id < 0)
+        //  {
+        //      continue;
+        //  }
+        //  else if(id == 0)
+        //  {
+        //      //child process
+        //      close(listen_sock);
 
+        //     if(fork() > 0) exit(0); //退出的是子进程
+        //     // 向后走的进程其实是孙子进程
 
-            close(new_sock);
-            exit(0);
-        }
-        else
-        {
-            //father
-            // Do Nothing
-            close(new_sock);
-        }
+        //     ServiceIO(new_sock);
+
+        //     //曾经被父进程打开的fd, 是否会被子进程继承呢?
+        //     //无论父子进程中的哪一个fd,强烈建议关闭,防止误读
+        //     close(new_sock);
+        //     exit(0);
+        // }
+        // else
+        // {
+        //     //father, 不需要等待
+        //     // Do Nothing
+        //     waitpid(id, nullptr, 0); //这里等待的时候会不会被阻塞呢?
+        //     close(new_sock);
+        // }
 
         // version 1.0:单进程版, 没人使用
         // 提供服务
         // ServiceIO(new_sock);
-
     }
 
     return 0;
