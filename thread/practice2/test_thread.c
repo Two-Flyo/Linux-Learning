@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+
+
 void *thread_run(void* args)
 {
 	while(1)
